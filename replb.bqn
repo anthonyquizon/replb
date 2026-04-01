@@ -2,6 +2,7 @@
 
 # Reference: https://github.com/Brian-ED/bqn-socket/blob/master/socket.bqn
 # Reference: https://github.com/anthonyquizon/dbq/blob/bcd6c4bcff9c9912032a1c30b946bdba7158e47e/src/rt.bqn
+# TODO read config file for port?
 
 
 lf           ← @+10
@@ -28,8 +29,8 @@ Debug←{
   𝕊𝕩:•Show 𝕩
 ; l𝕊𝕩: #TODO line numbers
     l↩(»⊸∨' '⊸≠)⊸/l # trim line
-    •term.OutRaw •ToUTF8 l∾":"∾lf
-    •term.OutRaw •ToUTF8 "    "∾(•Fmt 𝕩)∾lf
+    •Out l∾":"
+    •Out "    "∾(•Fmt 𝕩)
 }
 
 repl←•ReBQN { 
@@ -68,40 +69,45 @@ repl←•ReBQN {
     "while"‿•_while_
   ⟩
 }
-  
-port←8080
 
 Eval←{ 
   •Out "=== REPL ==="
   l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩 # split lines by newline
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) ⊑l # parse line number range
-  r←r0+↕r1-r0 # line number range 
-  c←{('"'∾𝕩∾'"')∾"⊸•DEBUG "∾𝕩}¨⌾(r⊸⊏) 1↓l # TODO escape strings
-  Repl ∾lf⊸∾¨c
+  r←(r0)+↕(1+r1)-r0 # line number range 
+  c←{('"'∾𝕩∾'"')∾"⊸•DEBUG "∾𝕩}¨⌾(r⊸⊏) l # TODO escape strings
+  Repl ∾lf⊸∾¨1↓c
 }
 
-Run←{𝕊:
-  srv_addr ← ⟨af_inet,Htons ⟨port⟩,⟨0⟩,8⥊0⟩
-  srv_fd←Socket af_inet‿sock_stream‿0
-  Setsockopt srv_fd‿sol_socket‿so_reuseaddr‿⟨1⟩‿4
-  Bind ⟨srv_fd,⋈srv_addr,16⟩
-  Listen srv_fd‿3
+Run←{
+  𝕊 ⟨⟩: 𝕊 8080
+; 𝕊 ⟨port⟩: 0≡•Type port? 𝕊 ⟨•ParseFloat port⟩
+; 𝕊 ⟨port⟩:
+    srv_addr ← ⟨af_inet,Htons ⟨port⟩,⟨0⟩,8⥊0⟩
+    srv_fd←Socket af_inet‿sock_stream‿0
+    Setsockopt srv_fd‿sol_socket‿so_reuseaddr‿⟨1⟩‿4
+    Bind ⟨srv_fd,⋈srv_addr,16⟩
+    Listen srv_fd‿3
 
-  •Out "listening to port "∾•Fmt port
+    •Out "listening to port "∾•Fmt port
 
-  {𝕊:
-    c_fd‿·‿· ← Accept⟨srv_fd, ⋈⟨0, 14⥊0⟩, ⋈16⟩
-    n‿ch←Read ⟨c_fd,1024⥊0,1024⟩ # b: buffer
-    ch↩•FromUTF8 n↑ch
-    Eval ch
-    1
-  } •_while_ ⊢ 1
+    {𝕊:
+      c_fd‿·‿· ← Accept⟨srv_fd, ⋈⟨0, 14⥊0⟩, ⋈16⟩
+      n‿ch←Read ⟨c_fd,1024⥊0,1024⟩ # b: buffer
+      Eval •FromUTF8 n↑ch
+      1
+    } •_while_ ⊢ 1
 }
 
-{𝕊:
-  Eval "1:3
+Test←{𝕊:
+  Eval "1:1
     a←1
     b←2
     c←3
   "
-}⍟≡⊸⟨"debug"⟩ •args
+}
+
+{
+  𝕩:𝕩≡⟨"test"⟩?Test@
+; 𝕩:Run 𝕩
+} •args
