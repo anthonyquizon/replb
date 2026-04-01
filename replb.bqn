@@ -27,9 +27,8 @@ read       ← @ •FFI "i32"‿"read"‿"i32"‿"&u8"‿"i32"
 
 Debug←{
   𝕊𝕩:•Show 𝕩
-; l𝕊𝕩: #TODO line numbers
-    l↩(»⊸∨' '⊸≠)⊸/l # trim line
-    •Out l∾":"
+; 𝕨𝕊𝕩: 
+    •Out (»⊸∨' '⊸≠)⊸/𝕨∾":" # output trimmed line
     •Out "    "∾(•Fmt 𝕩)
 }
 
@@ -76,6 +75,7 @@ Eval←{
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) ⊑l # parse line number range
   r←(r0)+↕(1+r1)-r0 # line number range 
   c←{('"'∾𝕩∾'"')∾"⊸•DEBUG "∾𝕩}¨⌾(r⊸⊏) l # TODO escape strings
+  # TODO parse if cursor is in function 
   Repl ∾lf⊸∾¨1↓c
 }
 
