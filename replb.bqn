@@ -33,50 +33,18 @@ Debug←{
 }
 
 repl←•ReBQN { 
-  repl⇐"none" 
-  system⇐⟨
-    # overrides of system function
-    "args"‿⟨"debug"⟩
-    "debug"‿Debug
-
-    # remapping of system functions - no •system list
-    "bqn"‿•Bqn
-    "currenterror"‿•CurrentError
-    "exit"‿•Exit
-    "ffi"‿•FFI
-    "file"‿•file
-    "flines"‿•flines
-    "fmt"‿•fmt
-    "hash"‿•hash
-    "hashmap"‿•hashMap
-    "internal"‿•internal
-    "unixtime"‿•unixtime
-    "makerand"‿•makeRand
-    "math"‿•math
-    "ns"‿•ns
-    "out"‿•out
-    "show"‿•show
-    "parsefloat"‿•parseFloat
-    "path"‿•path
-    "primitives"‿•primitives
-    "repr"‿•repr
-    "rand"‿•rand
-    "term"‿•term
-    "toutf8"‿•toUTF8
-    "type"‿•type
-    "wdpath"‿•wdpath
-    "while"‿•_while_
-  ⟩
+  primitives⇐•primitives∾⟨'▯'‿Debug ⟩
 }
 
+Escape←{𝕩/˜1+𝕩='"'}
 Eval←{ 
   •Out "=== REPL ==="
   l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩 # split lines by newline
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) ⊑l # parse line number range
   r←(r0)+↕(1+r1)-r0 # line number range 
-  c←{('"'∾𝕩∾'"')∾"⊸•DEBUG "∾𝕩}¨⌾(r⊸⊏) l # TODO escape strings
+  c←{('"'∾(Escape𝕩)∾'"')∾"▯ "∾𝕩}¨⌾(r⊸⊏) l # TODO escape strings
   # TODO parse if cursor is in function 
-  Repl ∾lf⊸∾¨1↓c
+  ⟨"", "", "test"⟩ Repl ∾lf⊸∾¨1↓c
 }
 
 Run←{
@@ -93,8 +61,8 @@ Run←{
 
     {𝕊:
       c_fd‿·‿· ← Accept⟨srv_fd, ⋈⟨0, 14⥊0⟩, ⋈16⟩
-      n‿ch←Read ⟨c_fd,1024⥊0,1024⟩ # b: buffer
-      Eval •FromUTF8 n↑ch
+      n‿ch←Read ⟨c_fd,1000000⥊0,1000000⟩ 
+      Eval •Show •FromUTF8 n↑ch
       1
     } •_while_ ⊢ 1
 }
