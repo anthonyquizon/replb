@@ -4,7 +4,6 @@
 # Reference: https://github.com/anthonyquizon/dbq/blob/bcd6c4bcff9c9912032a1c30b946bdba7158e47e/src/rt.bqn
 # TODO read config file for port?
 
-
 lf           ← @+10
 af_inet      ← 2
 inaddr_any   ← 0
@@ -26,14 +25,15 @@ htons      ← @ •FFI "i32"‿"htons"‿"i32"
 read       ← @ •FFI "i32"‿"read"‿"i32"‿"&u8"‿"i32"
 
 Debug←{
-  𝕊𝕩:•Show 𝕩
-; 𝕨𝕊𝕩: 
     •Out (»⊸∨' '⊸≠)⊸/𝕨∾":" # output trimmed line
     •Out "    "∾(•Fmt 𝕩)
 }
 
 repl←•ReBQN { 
-  primitives⇐•primitives∾⟨'▯'‿Debug ⟩
+  primitives⇐•primitives∾⟨
+    '▯'‿•Show 
+    '▫'‿Debug 
+  ⟩
 }
 
 Escape←{𝕩/˜1+𝕩='"'}
@@ -42,7 +42,7 @@ Eval←{
   l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩 # split lines by newline
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) ⊑l # parse line number range
   r←(r0)+↕(1+r1)-r0 # line number range 
-  c←{('"'∾(Escape𝕩)∾'"')∾"▯ "∾𝕩}¨⌾(r⊸⊏) l # TODO escape strings
+  c←{('"'∾(Escape𝕩)∾'"')∾"▫ "∾𝕩}¨⌾(r⊸⊏) l # TODO escape strings
   # TODO parse if cursor is in function 
   ⟨"", "", "test"⟩ Repl ∾lf⊸∾¨1↓c
 }
@@ -62,7 +62,7 @@ Run←{
     {𝕊:
       c_fd‿·‿· ← Accept⟨srv_fd, ⋈⟨0, 14⥊0⟩, ⋈16⟩
       n‿ch←Read ⟨c_fd,1000000⥊0,1000000⟩ 
-      Eval •Show •FromUTF8 n↑ch
+      Eval •FromUTF8 n↑ch
       1
     } •_while_ ⊢ 1
 }

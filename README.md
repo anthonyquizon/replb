@@ -13,6 +13,9 @@ endf
 nn <leader>w :call SendToSocket('localhost', 8080)<CR>
 vn <leader>w :call SendToSocket('localhost', 8080)<CR>
 
+" add show alias
+nn <leader>q a▯<Esc> 
+ino <leader>q ▯
 ```
 
 ## TODO
