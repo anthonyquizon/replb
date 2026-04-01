@@ -80,7 +80,7 @@ Eval←{
 }
 
 Run←{
-  𝕊 ⟨⟩: 𝕊 8080
+  𝕊 ⟨⟩: 𝕊 ⟨8080⟩
 ; 𝕊 ⟨port⟩: 0≡•Type port? 𝕊 ⟨•ParseFloat port⟩
 ; 𝕊 ⟨port⟩:
     srv_addr ← ⟨af_inet,Htons ⟨port⟩,⟨0⟩,8⥊0⟩
