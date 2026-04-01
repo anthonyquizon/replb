@@ -105,6 +105,11 @@ Test←{𝕊:
     b←2
     c←3
   "
+
+  Eval "1:1
+    Foo←{𝕩+1} # should add DEBUG at x+1
+    Foo 2
+  "
 }
 
 {
