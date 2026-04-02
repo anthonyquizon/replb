@@ -1,5 +1,6 @@
 # ReplB
-Socket server for evaluating bqn file and prints out specified lines
+Socket server wrapper for •ReBQN. 
+Prints out expressions on specified lines
 
 
 Vim mappings
@@ -19,7 +20,7 @@ ino <leader>q ▯
 ```
 
 ## TODO
-- [ ] mark lines
+- [ ] AST parsing
 - [ ] set starting script 
 - [ ] formatting options
 
