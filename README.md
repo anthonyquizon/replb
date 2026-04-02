@@ -20,4 +20,6 @@ ino <leader>q ▯
 
 ## TODO
 - [ ] mark lines
+- [ ] set starting script 
+- [ ] formatting options
 

@@ -8,8 +8,8 @@ lf           ← @+10
 af_inet      ← 2
 inaddr_any   ← 0
 sock_stream  ← 1
-sol_socket   ← 65535                                                  # 0xffff
-so_reuseaddr ← 2                                                      # 0x0004
+sol_socket   ← 65535                               # 0xffff
+so_reuseaddr ← 2                                   # 0x0004
 
 sockaddr    ← "{u16,[14]u8}"
 sockaddr_in ← "{u16,u16,{u32},[8]u8}"
@@ -23,58 +23,64 @@ send       ← @ •FFI "i64"‿"send"‿"i32"‿"*u8"‿"u64"‿"i32"
 
 htons      ← @ •FFI "i32"‿"htons"‿"i32"
 read       ← @ •FFI "i32"‿"read"‿"i32"‿"&u8"‿"i32"
-repl ← @
+repl       ← @
+ref        ← ⟨⟩
 
 Debug←{
-    •Out (»⊸∨' '⊸≠)⊸/𝕨∾":" # output trimmed line
+    •Out (»⊸∨' '⊸≠)⊸/(𝕨⊑ref)∾":"                   # output trimmed line
     •Out "    "∾(•Fmt 𝕩)
 }
 
 ctx←{
     s    ⇐ ⟨⟩
     Push ⇐ {𝕊:s∾↩<𝕩}
-    Peek ⇐ {𝕊:0=≠s?⟨⟩;¯1⊑s}                                                                            # Return but don't pop top value
-    Pop  ⇐ {t←-𝕩⋄(s↓˜↩t)⊢⌽t↑s}                                                                         # Pop 𝕩 values; return as list
+    Peek ⇐ {𝕊:0=≠s?⟨⟩;¯1⊑s}                        # Return but don't pop top value
+    Pop  ⇐ {t←-𝕩⋄(s↓˜↩t)⊢⌽t↑s}                     # Pop 𝕩 values; return as list
 }
 
 Import←{
     f←•file.Chars ∾⟜𝕩•file.Parent ctx.Peek@
+    # TODO parse and index quads
     ctx.Push 𝕩
     Repl f
     ctx.Pop 1
 }
 
-repl↩•ReBQN { 
+repl↩•ReBQN {
   primitives⇐•primitives∾⟨
-    '▯'‿•Show 
-    '▫'‿Debug 
+    '▯'‿•Show                                      # replaced by ▫ after parsing
+    '▫'‿Debug
   ⟩,
   system⇐⟨
-    "import"‿Import
-    # ====
     "bqn"‿•Bqn,               "currenterror"‿•CurrentError,  "exit"‿•Exit
-    "ffi"‿•FFI,               "file"‿•file,                  "flines"‿•flines, 
+    "ffi"‿•FFI,               "file"‿•file,                  "flines"‿•flines,
     "fmt"‿•Fmt,               "hash"‿•hash,                  "hashmap"‿•hashmap
     "internal"‿•internal,     "unixtime"‿•unixtime,          "makerand"‿•MakeRand
-    "math"‿•math,             "ns"‿•ns,                      "out"‿•Out, 
+    "math"‿•math,             "ns"‿•ns,                      "out"‿•Out,
     "parsefloat"‿•ParseFloat, "path"‿•path,                  "primitives"‿•primitives
     "repr"‿•repr,             "rand"‿•rand,                  "show"‿•show
     "term"‿•term,             "toutf8"‿•ToUTF8,              "type"‿•Type
-    "wdpath"‿•wdpath,         "while"‿•_while_
+    "wdpath"‿•wdpath,         "while"‿•_while_,              "rebqn"‿•rebqn
+    # ==== overrides ====
+    "import"‿Import
   ⟩
 }
 
-Escape←{𝕩/˜1+𝕩='"'}
-Eval←{ 
-  •Out "=== REPL ==="
-  l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩 # split lines by newline
-  r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) ⊑l # parse line number range
-  r←(r0)+↕(1+r1)-r0 # line number range 
-  ctx.Push "_scratch/foo.bqn"
-  # TODO register line names by index
-  c←{('"'∾(Escape𝕩)∾'"')∾"▫ "∾𝕩}¨⌾(r⊸⊏) l # TODO escape strings
-  # TODO parse if cursor is in function 
-  ⟨"", "", "test"⟩ Repl ∾lf⊸∾¨1↓c
+Eval⇐{
+  •Out "--"
+  ref↩⟨⟩
+  l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩                        # split lines by newline
+  l↩l/˜0≠≠¨l                                       # drop empty leading lines
+  f‿n←(»⊸∨' '⊸≠)⊸/¨0‿1⊏l                           # f: filename, n: selection range
+  
+  r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) n       # parse line number range
+  r←(r0+1)+↕(1+r1)-r0                              # line number range 
+  i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
+  ref↩r⊏l
+  c←i ∾∘∾¨⌾(r⊸⊏) l
+
+  ctx.Push f
+  ⟨"", "", "test"⟩ Repl ∾lf⊸∾¨2↓c
 }
 
 Run←{
@@ -91,26 +97,15 @@ Run←{
 
     {𝕊:
       c_fd‿·‿· ← Accept⟨srv_fd, ⋈⟨0, 14⥊0⟩, ⋈16⟩
-      n‿ch←Read ⟨c_fd,1000000⥊0,1000000⟩ 
+      n‿ch←Read ⟨c_fd,1000000⥊0,1000000⟩
       Eval •FromUTF8 n↑ch
       1
     } •_while_ ⊢ 1
 }
 
-Test←{𝕊:
-  Eval "1:1
-    a←1
-    b←2
-    c←3
-  "
-
-  Eval "1:1
-    Foo←{𝕩+1} # should add DEBUG at x+1
-    Foo 2
-  "
-}
-
+# TODO start with filename
 {
-  𝕩:𝕩≡⟨"test"⟩?Test@
+  𝕩:𝕩≡"test"?@
 ; 𝕩:Run 𝕩
 } •args
+
