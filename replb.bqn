@@ -23,16 +23,44 @@ send       ← @ •FFI "i64"‿"send"‿"i32"‿"*u8"‿"u64"‿"i32"
 
 htons      ← @ •FFI "i32"‿"htons"‿"i32"
 read       ← @ •FFI "i32"‿"read"‿"i32"‿"&u8"‿"i32"
+repl ← @
 
 Debug←{
     •Out (»⊸∨' '⊸≠)⊸/𝕨∾":" # output trimmed line
     •Out "    "∾(•Fmt 𝕩)
 }
 
-repl←•ReBQN { 
+ctx←{
+    s    ⇐ ⟨⟩
+    Push ⇐ {𝕊:s∾↩<𝕩}
+    Peek ⇐ {𝕊:0=≠s?⟨⟩;¯1⊑s}                                                                            # Return but don't pop top value
+    Pop  ⇐ {t←-𝕩⋄(s↓˜↩t)⊢⌽t↑s}                                                                         # Pop 𝕩 values; return as list
+}
+
+Import←{
+    f←•file.Chars ∾⟜𝕩•file.Parent ctx.Peek@
+    ctx.Push 𝕩
+    Repl f
+    ctx.Pop 1
+}
+
+repl↩•ReBQN { 
   primitives⇐•primitives∾⟨
     '▯'‿•Show 
     '▫'‿Debug 
+  ⟩,
+  system⇐⟨
+    "import"‿Import
+    # ====
+    "bqn"‿•Bqn,               "currenterror"‿•CurrentError,  "exit"‿•Exit
+    "ffi"‿•FFI,               "file"‿•file,                  "flines"‿•flines, 
+    "fmt"‿•Fmt,               "hash"‿•hash,                  "hashmap"‿•hashmap
+    "internal"‿•internal,     "unixtime"‿•unixtime,          "makerand"‿•MakeRand
+    "math"‿•math,             "ns"‿•ns,                      "out"‿•Out, 
+    "parsefloat"‿•ParseFloat, "path"‿•path,                  "primitives"‿•primitives
+    "repr"‿•repr,             "rand"‿•rand,                  "show"‿•show
+    "term"‿•term,             "toutf8"‿•ToUTF8,              "type"‿•Type
+    "wdpath"‿•wdpath,         "while"‿•_while_
   ⟩
 }
 
@@ -42,6 +70,8 @@ Eval←{
   l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩 # split lines by newline
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) ⊑l # parse line number range
   r←(r0)+↕(1+r1)-r0 # line number range 
+  ctx.Push "_scratch/foo.bqn"
+  # TODO register line names by index
   c←{('"'∾(Escape𝕩)∾'"')∾"▫ "∾𝕩}¨⌾(r⊸⊏) l # TODO escape strings
   # TODO parse if cursor is in function 
   ⟨"", "", "test"⟩ Repl ∾lf⊸∾¨1↓c
