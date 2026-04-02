@@ -23,4 +23,6 @@ ino <leader>q ▯
 - [ ] AST parsing
 - [ ] set starting script 
 - [ ] formatting options
+- [ ] generate port from parent folder
+- [ ] read config file
 

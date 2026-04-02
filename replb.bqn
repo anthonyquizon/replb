@@ -24,7 +24,9 @@ send       ← @ •FFI "i64"‿"send"‿"i32"‿"*u8"‿"u64"‿"i32"
 htons      ← @ •FFI "i32"‿"htons"‿"i32"
 read       ← @ •FFI "i32"‿"read"‿"i32"‿"&u8"‿"i32"
 repl       ← @
+port       ← 8080
 ref        ← ⟨⟩
+entry      ← @
 
 Debug←{
     •Out (»⊸∨' '⊸≠)⊸/(𝕨⊑ref)∾":"                   # output trimmed line
@@ -70,42 +72,37 @@ Eval⇐{
   •Out "--"
   ref↩⟨⟩
   l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩                        # split lines by newline
-  l↩l/˜0≠≠¨l                                       # drop empty leading lines
+  l↩l/˜⌈`0≠≠¨l                                     # drop empty leading header lines
   f‿n←(»⊸∨' '⊸≠)⊸/¨0‿1⊏l                           # f: filename, n: selection range - strip leading spaces
-
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) n       # parse line number range
-  r←(r0+1)+↕(1+r1)-r0                              # line number range 
+  r←(r0+1)+↕r0-˜1+r1                               # line number range 
   i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
   ref↩r⊏l
   c←i ∾∘∾¨⌾(r⊸⊏) l
-
   ctx.Push f
   ⟨"", "", f⟩ Repl ∾lf⊸∾¨2↓c
 }
 
-Run←{
-  𝕊 ⟨⟩: 𝕊 ⟨8080⟩
-; 𝕊 ⟨port⟩: 0≡•Type port? 𝕊 ⟨•ParseFloat port⟩
-; 𝕊 ⟨port⟩:
-    srv_addr ← ⟨af_inet,Htons ⟨port⟩,⟨0⟩,8⥊0⟩
-    srv_fd←Socket af_inet‿sock_stream‿0
-    Setsockopt srv_fd‿sol_socket‿so_reuseaddr‿⟨1⟩‿4
-    Bind ⟨srv_fd,⋈srv_addr,16⟩
-    Listen srv_fd‿3
+Run←{𝕊:
+  srv_addr ← ⟨af_inet,Htons ⟨port⟩,⟨0⟩,8⥊0⟩
+  srv_fd←Socket af_inet‿sock_stream‿0
+  Setsockopt srv_fd‿sol_socket‿so_reuseaddr‿⟨1⟩‿4
+  Bind ⟨srv_fd,⋈srv_addr,16⟩
+  Listen srv_fd‿3
 
-    •Out "listening to port "∾•Fmt port
+  •Out "listening to port "∾•Fmt port
 
-    {𝕊:
-      c_fd‿·‿· ← Accept⟨srv_fd, ⋈⟨0, 14⥊0⟩, ⋈16⟩
-      n‿ch←Read ⟨c_fd,1000000⥊0,1000000⟩
-      Eval •FromUTF8 n↑ch
-      1
-    } •_while_ ⊢ 1
+  {𝕊:
+    c_fd‿·‿· ← Accept⟨srv_fd, ⋈⟨0, 14⥊0⟩, ⋈16⟩
+    n‿ch←Read ⟨c_fd,1000000⥊0,1000000⟩
+    Eval •FromUTF8 n↑ch
+    1
+  } •_while_ ⊢ 1
 }
 
-# TODO start with filename
 {
   𝕩:𝕩≡"test"?@
-; 𝕩:Run 𝕩
+; 𝕩:1=≠𝕩? entry←⊑𝕩 ⋄ Run@                          # Run with 
+; 𝕩: Run@
 } •args
 
