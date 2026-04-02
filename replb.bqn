@@ -71,8 +71,8 @@ Eval⇐{
   ref↩⟨⟩
   l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩                        # split lines by newline
   l↩l/˜0≠≠¨l                                       # drop empty leading lines
-  f‿n←(»⊸∨' '⊸≠)⊸/¨0‿1⊏l                           # f: filename, n: selection range
-  
+  f‿n←(»⊸∨' '⊸≠)⊸/¨0‿1⊏l                           # f: filename, n: selection range - strip leading spaces
+
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) n       # parse line number range
   r←(r0+1)+↕(1+r1)-r0                              # line number range 
   i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
@@ -80,7 +80,7 @@ Eval⇐{
   c←i ∾∘∾¨⌾(r⊸⊏) l
 
   ctx.Push f
-  ⟨"", "", "test"⟩ Repl ∾lf⊸∾¨2↓c
+  ⟨"", "", f⟩ Repl ∾lf⊸∾¨2↓c
 }
 
 Run←{
