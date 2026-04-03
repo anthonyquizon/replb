@@ -48,24 +48,27 @@ Import←{
     ctx.Pop 1
 }
 
-repl↩•ReBQN {
-  primitives⇐•primitives∾⟨
-    '▯'‿•Show                                      # replaced by ▫ after parsing
-    '▫'‿Debug
-  ⟩,
-  system⇐⟨
-    "bqn"‿•Bqn,               "currenterror"‿•CurrentError,  "exit"‿•Exit
-    "ffi"‿•FFI,               "file"‿•file,                  "flines"‿•flines,
-    "fmt"‿•Fmt,               "hash"‿•hash,                  "hashmap"‿•hashmap
-    "internal"‿•internal,     "unixtime"‿•unixtime,          "makerand"‿•MakeRand
-    "math"‿•math,             "ns"‿•ns,                      "out"‿•Out,
-    "parsefloat"‿•ParseFloat, "path"‿•path,                  "primitives"‿•primitives
-    "repr"‿•repr,             "rand"‿•rand,                  "show"‿•show
-    "term"‿•term,             "toutf8"‿•ToUTF8,              "type"‿•Type
-    "wdpath"‿•wdpath,         "while"‿•_while_,              "rebqn"‿•rebqn
-    # ==== overrides ====
-    "import"‿Import
-  ⟩
+
+ReBQN←{ 𝕊 path:
+  repl↩•ReBQN {
+    primitives⇐•primitives∾⟨
+      '▯'‿•Show                                      # replaced by ▫ after parsing
+      '▫'‿Debug
+    ⟩,
+    system⇐⟨
+      "bqn"‿•Bqn,               "currenterror"‿•CurrentError,  "exit"‿•Exit
+      "ffi"‿•FFI,               "file"‿•file,                  "flines"‿•flines,
+      "fmt"‿•Fmt,               "hash"‿•hash,                  "hashmap"‿•hashmap
+      "internal"‿•internal,     "unixtime"‿•unixtime,          "makerand"‿•MakeRand
+      "math"‿•math,             "ns"‿•ns,                      "out"‿•Out,
+      "parsefloat"‿•ParseFloat, "path"‿path,                  "primitives"‿•primitives
+      "repr"‿•repr,             "rand"‿•rand,                  "show"‿•show
+      "term"‿•term,             "toutf8"‿•ToUTF8,              "type"‿•Type
+      "wdpath"‿•wdpath,         "while"‿•_while_,              "rebqn"‿•rebqn
+      # ==== overrides ====
+      "import"‿Import
+    ⟩
+  }
 }
 
 Eval⇐{
@@ -80,6 +83,7 @@ Eval⇐{
   ref↩r⊏l
   c←i ∾∘∾¨⌾(r⊸⊏) l
   ctx.Push f
+  repl↩ReBQN •file.Parent f
   ⟨"", "", f⟩ Repl ∾lf⊸∾¨2↓c
 }
 
