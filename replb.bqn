@@ -26,33 +26,50 @@ read       ← @ •FFI "i32"‿"read"‿"i32"‿"&u8"‿"i32"
 repl       ← @
 port       ← 8080
 ref        ← ⟨⟩
-entry      ← @
+buf        ← @
+file       ← @
 
 Debug←{
-    •Out (»⊸∨' '⊸≠)⊸/(𝕨⊑ref)∾":"                   # output trimmed line
-    •Out "    "∾(•Fmt 𝕩)
+  •Out (»⊸∨' '⊸≠)⊸/(𝕨⊑ref)∾":"                     # output trimmed line
+  •Out "    "∾(•Fmt 𝕩)
 }
 
 ctx←{
-    s    ⇐ ⟨⟩
-    Push ⇐ {𝕊:s∾↩<𝕩}
-    Peek ⇐ {𝕊:0=≠s?⟨⟩;¯1⊑s}                        # Return but don't pop top value
-    Pop  ⇐ {t←-𝕩⋄(s↓˜↩t)⊢⌽t↑s}                     # Pop 𝕩 values; return as list
+  s    ⇐ ⟨⟩
+  Push ⇐ {𝕊:s∾↩<𝕩}
+  Peek ⇐ {𝕊:0=≠s?⟨⟩;¯1⊑s}                          # Return but don't pop top value
+  Pop  ⇐ {t←-𝕩⋄(s↓˜↩t)⊢⌽t↑s}                       # Pop 𝕩 values; return as list
 }
 
-Import←{
-    f←•file.Chars ∾⟜𝕩•file.Parent ctx.Peek@
-    # TODO parse and index quads
+Eval⇐{
+  l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩                        # split lines by newline
+  l↩l/˜⌈`0≠≠¨l                                     # drop empty leading header lines
+  f‿n←(»⊸∨' '⊸≠)⊸/¨0‿1⊏l                           # f: filename, n: selection range - strip leading spaces
+  r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) n       # parse line number range
+  r←(r0+1)+↕r0-˜1+r1                               # line number range 
+  i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
+  ref↩ref∾r⊏l
+  c←i ∾∘∾¨⌾(r⊸⊏) l
+  ⟨"", "", f⟩ Repl ∾lf⊸∾¨2↓c
+}
+
+Import←{𝕊:
+  { 𝕩:𝕩≡file?
     ctx.Push 𝕩
-    Repl f
+    Eval buf
     ctx.Pop 1
+  ; 𝕩:
+    b←•file.Chars 𝕩
+    ctx.Push 𝕩
+    Repl b
+    ctx.Pop 1
+  } ∾⟜𝕩•file.Parent ctx.Peek@
 }
-
 
 ReBQN←{ 𝕊 path:
   repl↩•ReBQN {
     primitives⇐•primitives∾⟨
-      '▯'‿•Show                                      # replaced by ▫ after parsing
+      '▯'‿•Show                                    # TODO remove replaced by ▫ after parsing
       '▫'‿Debug
     ⟩,
     system⇐⟨
@@ -71,23 +88,7 @@ ReBQN←{ 𝕊 path:
   }
 }
 
-Eval⇐{
-  •Out "--"
-  ref↩⟨⟩
-  l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩                        # split lines by newline
-  l↩l/˜⌈`0≠≠¨l                                     # drop empty leading header lines
-  f‿n←(»⊸∨' '⊸≠)⊸/¨0‿1⊏l                           # f: filename, n: selection range - strip leading spaces
-  r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) n       # parse line number range
-  r←(r0+1)+↕r0-˜1+r1                               # line number range 
-  i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
-  ref↩r⊏l
-  c←i ∾∘∾¨⌾(r⊸⊏) l
-  ctx.Push f
-  repl↩ReBQN •file.Parent f
-  ⟨"", "", f⟩ Repl ∾lf⊸∾¨2↓c
-}
-
-Run←{𝕊:
+Run←{𝕊 entry:
   srv_addr ← ⟨af_inet,Htons ⟨port⟩,⟨0⟩,8⥊0⟩
   srv_fd←Socket af_inet‿sock_stream‿0
   Setsockopt srv_fd‿sol_socket‿so_reuseaddr‿⟨1⟩‿4
@@ -99,14 +100,41 @@ Run←{𝕊:
   {𝕊:
     c_fd‿·‿· ← Accept⟨srv_fd, ⋈⟨0, 14⥊0⟩, ⋈16⟩
     n‿ch←Read ⟨c_fd,1000000⥊0,1000000⟩
-    Eval •FromUTF8 n↑ch
+    
+    •Out "--"
+    b←•FromUTF8 n↑ch
+    l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) b                      # split lines by newline
+    l↩l/˜⌈`0≠≠¨l                                   # drop empty leading header lines
+    f←(»⊸∨' '⊸≠)⊸/0⊑l                             # f: filename, n: selection range - strip leading spaces
+    ref↩⟨⟩
+
+    { 𝕩:entry≡𝕩?
+        repl↩ReBQN •file.Parent f
+        Eval b
+    ; 𝕩:entry≡@?
+        repl↩ReBQN •file.Parent f
+        Eval b
+    ; 𝕩:
+        buf↩b
+        file↩f
+
+        ch←•file.Chars entry
+
+        repl↩ReBQN •file.Parent entry
+        ctx.Push entry
+        Repl ch
+        ctx.Pop 1
+
+        buf↩@
+        file↩@
+    } f
     1
   } •_while_ ⊢ 1
 }
 
 {
   𝕩:𝕩≡"test"?@
-; 𝕩:1=≠𝕩? entry←⊑𝕩 ⋄ Run@                          # Run with 
+; 𝕩:1=≠𝕩? Run •path •file.At ⊑𝕩                             # Run with 
 ; 𝕩: Run@
 } •args
 

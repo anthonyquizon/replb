@@ -25,4 +25,5 @@ ino <leader>q ▯
 - [ ] formatting options
 - [ ] generate port from parent folder
 - [ ] read config file
+- [ ] toggle ▯ output
 
