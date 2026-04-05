@@ -117,8 +117,6 @@ Run←{𝕊 entry:
         repl↩ReBQN path
         ⟨path, entry, •args⟩ Repl ch
     } 0⊑l
-
-    cur↩@ ⋄ ref↩⟨⟩
     1
   } •_while_ ⊢ 1
 }
