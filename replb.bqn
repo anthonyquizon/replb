@@ -25,9 +25,9 @@ htons      ← @ •FFI "i32"‿"htons"‿"i32"
 read       ← @ •FFI "i32"‿"read"‿"i32"‿"&u8"‿"i32"
 repl       ← @
 port       ← 8080
-ref        ← ⟨⟩
+ref        ← ⟨⟩                                    # reference table of id numbers to line info 
 
-cur        ← @
+cur        ← @                                     # current buffer to be evaluated that has been sent over from the socket
 
 Debug←{
   •Out (»⊸∨' '⊸≠)⊸/(𝕨⊑ref)∾":"                     # output trimmed line
@@ -53,8 +53,8 @@ Eval⇐{ 𝕨 𝕊 l:
 Import←{
     𝕊 𝕩: ⟨⟩ 𝕊 𝕩
 ; 𝕨 𝕊 𝕩:
-  p‿·‿·←ctx←⟨•file.Parent ctx.Peek@, •file.Name 𝕩, 𝕨⟩ 
-  { 𝕩:𝕩≡0⊏cur? ctx Eval cur
+  p‿·‿·←ctx←⟨•file.Parent ctx.Peek@, •file.Name 𝕩, 𝕨⟩
+  { 𝕩:𝕩≡0⊑cur? ctx Eval cur
   ; 𝕩:ctx Repl •file.Chars 𝕩
   } p∾𝕩
 }
@@ -80,7 +80,7 @@ ReBQN←{ 𝕊 path:
     ⟩
   }
 
-  Repl↩{ ·‿·‿f 𝕊 𝕩:
+  Repl↩{ ·‿f‿· 𝕊 𝕩:
     ctx.Push f
     𝕨 Re 𝕩
     ctx.Pop 1
@@ -105,32 +105,29 @@ Run←{𝕊 entry:
     l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) b                      # split lines by newline
     l↩l/˜⌈`0≠≠¨l                                   # drop empty leading header lines
     l↩(»⊸∨' '⊸≠)⊸/¨⌾(0‿1⊸⊏) l                      # f: filename, n: selection range - strip leading spaces (helps with debugging/tests)
-    cur↩l
-    ref↩⟨⟩
+    cur↩l ⋄ ref↩⟨⟩
 
-    
-
-    { 𝕩:entry≡𝕩?                                   # if buffer is entry, eval now
-        path←•file.Parent entry
-        repl↩ReBQN path
-        ⟨path, entry, •args⟩ Repl 𝕩
-    ; 𝕩:entry≡@?                                   # eval buffer now if no entry specified
+    { 𝕩:(𝕩⊸≡∨≡⟜@)entry?                                   # if buffer is entry, eval now
         path←•file.Parent 𝕩
         repl↩ReBQN path
-        ⟨path, 𝕩, •args⟩ Eval 𝕩
+        ⟨path, entry, •args⟩ Eval 𝕩
     ; 𝕩:                                           # eval buffer on •Import 
         ch←•file.Chars entry
         path←•file.Parent entry
         repl↩ReBQN path
         ⟨path, entry, •args⟩ Repl ch
-        cur↩@
-    } 0⊏l
+    } 0⊑l
+
+    cur↩@ ⋄ ref↩⟨⟩
     1
   } •_while_ ⊢ 1
 }
 
 {
-  𝕩:𝕩≡"test"?@
+  ⟨s⇐socket,out⟩:
+    # TODO override effs
+    @
+; 𝕩:𝕩≡"test"?@                                     # TODO delete
 ; 𝕩:1=≠𝕩? Run •path •file.At ⊑𝕩                    # Run with 
 ; 𝕩: Run@
 } •args
