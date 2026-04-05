@@ -26,8 +26,8 @@ read       ← @ •FFI "i32"‿"read"‿"i32"‿"&u8"‿"i32"
 repl       ← @
 port       ← 8080
 ref        ← ⟨⟩
-buf        ← @
-file       ← @
+
+cur        ← @
 
 Debug←{
   •Out (»⊸∨' '⊸≠)⊸/(𝕨⊑ref)∾":"                     # output trimmed line
@@ -41,33 +41,26 @@ ctx←{
   Pop  ⇐ {t←-𝕩⋄(s↓˜↩t)⊢⌽t↑s}                       # Pop 𝕩 values; return as list
 }
 
-Eval⇐{
-  l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 𝕩                        # split lines by newline
-  l↩l/˜⌈`0≠≠¨l                                     # drop empty leading header lines
-  f‿n←(»⊸∨' '⊸≠)⊸/¨0‿1⊏l                           # f: filename, n: selection range - strip leading spaces
-  r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) n       # parse line number range
+Eval⇐{ 𝕨 𝕊 l:
+  r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 1⊑l     # parse line number range
   r←(r0+1)+↕r0-˜1+r1                               # line number range 
   i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
   ref↩ref∾r⊏l
   c←i ∾∘∾¨⌾(r⊸⊏) l
-  ⟨"", "", f⟩ Repl ∾lf⊸∾¨2↓c
+  𝕨 Repl ∾lf⊸∾¨2↓c
 }
 
-Import←{𝕊:
-  { 𝕩:𝕩≡file?
-    ctx.Push 𝕩
-    Eval buf
-    ctx.Pop 1
-  ; 𝕩:
-    b←•file.Chars 𝕩
-    ctx.Push 𝕩
-    Repl b
-    ctx.Pop 1
-  } ∾⟜𝕩•file.Parent ctx.Peek@
+Import←{
+    𝕊 𝕩: ⟨⟩ 𝕊 𝕩
+; 𝕨 𝕊 𝕩:
+  p‿·‿·←ctx←⟨•file.Parent ctx.Peek@, •file.Name 𝕩, 𝕨⟩ 
+  { 𝕩:𝕩≡0⊏cur? ctx Eval cur
+  ; 𝕩:ctx Repl •file.Chars 𝕩
+  } p∾𝕩
 }
 
 ReBQN←{ 𝕊 path:
-  repl↩•ReBQN {
+  re←•ReBQN {
     primitives⇐•primitives∾⟨
       '▯'‿•Show                                    # TODO remove replaced by ▫ after parsing
       '▫'‿Debug
@@ -85,6 +78,12 @@ ReBQN←{ 𝕊 path:
       # ==== overrides ====
       "import"‿Import
     ⟩
+  }
+
+  Repl↩{ ·‿·‿f 𝕊 𝕩:
+    ctx.Push f
+    𝕨 Re 𝕩
+    ctx.Pop 1
   }
 }
 
@@ -105,36 +104,34 @@ Run←{𝕊 entry:
     b←•FromUTF8 n↑ch
     l←(lf⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) b                      # split lines by newline
     l↩l/˜⌈`0≠≠¨l                                   # drop empty leading header lines
-    f←(»⊸∨' '⊸≠)⊸/0⊑l                             # f: filename, n: selection range - strip leading spaces
+    l↩(»⊸∨' '⊸≠)⊸/¨⌾(0‿1⊸⊏) l                      # f: filename, n: selection range - strip leading spaces (helps with debugging/tests)
+    cur↩l
     ref↩⟨⟩
 
-    { 𝕩:entry≡𝕩?
-        repl↩ReBQN •file.Parent f
-        Eval b
-    ; 𝕩:entry≡@?
-        repl↩ReBQN •file.Parent f
-        Eval b
-    ; 𝕩:
-        buf↩b
-        file↩f
+    
 
+    { 𝕩:entry≡𝕩?                                   # if buffer is entry, eval now
+        path←•file.Parent entry
+        repl↩ReBQN path
+        ⟨path, entry, •args⟩ Repl 𝕩
+    ; 𝕩:entry≡@?                                   # eval buffer now if no entry specified
+        path←•file.Parent 𝕩
+        repl↩ReBQN path
+        ⟨path, 𝕩, •args⟩ Eval 𝕩
+    ; 𝕩:                                           # eval buffer on •Import 
         ch←•file.Chars entry
-
-        repl↩ReBQN •file.Parent entry
-        ctx.Push entry
-        Repl ch
-        ctx.Pop 1
-
-        buf↩@
-        file↩@
-    } f
+        path←•file.Parent entry
+        repl↩ReBQN path
+        ⟨path, entry, •args⟩ Repl ch
+        cur↩@
+    } 0⊏l
     1
   } •_while_ ⊢ 1
 }
 
 {
   𝕩:𝕩≡"test"?@
-; 𝕩:1=≠𝕩? Run •path •file.At ⊑𝕩                             # Run with 
+; 𝕩:1=≠𝕩? Run •path •file.At ⊑𝕩                    # Run with 
 ; 𝕩: Run@
 } •args
 
