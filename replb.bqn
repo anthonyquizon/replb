@@ -42,6 +42,7 @@ ctx←{
 }
 
 Eval⇐{ 𝕨 𝕊 l:
+  •Show l
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 1⊑l     # parse line number range
   r←(r0+1)+↕r0-˜1+r1                               # line number range 
   i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
@@ -59,6 +60,9 @@ Import←{
   } p∾𝕩
 }
 
+# TODO parse faux ast
+
+# TODO •rebqn‿𝕊
 ReBQN←{ 𝕊 path:
   re←•ReBQN {
     primitives⇐•primitives∾⟨
@@ -82,8 +86,9 @@ ReBQN←{ 𝕊 path:
 
   Repl↩{ ·‿f‿· 𝕊 𝕩:
     ctx.Push f
-    𝕨 Re 𝕩
+    r←𝕨 Re 𝕩
     ctx.Pop 1
+    r
   }
 }
 
@@ -107,7 +112,7 @@ Run←{𝕊 entry:
     l↩(»⊸∨' '⊸≠)⊸/¨⌾(0‿1⊸⊏) l                      # f: filename, n: selection range - strip leading spaces (helps with debugging/tests)
     cur↩l ⋄ ref↩⟨⟩
 
-    { 𝕩:(𝕩⊸≡∨≡⟜@)entry?                                   # if buffer is entry, eval now
+    { 𝕩:(𝕩⊸≡∨≡⟜@)entry?                            # if buffer is entry, eval now
         path←•file.Parent 𝕩
         repl↩ReBQN path
         ⟨path, entry, •args⟩ Eval 𝕩

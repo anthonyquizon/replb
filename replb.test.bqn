@@ -2,6 +2,9 @@
 
 ⟨Eval⟩←"test" •Import "./replb.bqn"
 
+# TODO test imports
+# TODO test sub •Rebqn
+
 lf←@+10
 
 Eval "
