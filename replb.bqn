@@ -42,7 +42,6 @@ ctx←{
 }
 
 Eval⇐{ 𝕨 𝕊 l:
-  •Show l
   r0‿r1←•ParseFloat¨(':'⊸=)⊸((¬/+`)∘⊣⊔¬⊸/) 1⊑l     # parse line number range
   r←(r0+1)+↕r0-˜1+r1                               # line number range 
   i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
@@ -115,7 +114,7 @@ Run←{𝕊 entry:
     { 𝕩:(𝕩⊸≡∨≡⟜@)entry?                            # if buffer is entry, eval now
         path←•file.Parent 𝕩
         repl↩ReBQN path
-        ⟨path, entry, •args⟩ Eval 𝕩
+        ⟨path, entry, •args⟩ Eval l
     ; 𝕩:                                           # eval buffer on •Import 
         ch←•file.Chars entry
         path←•file.Parent entry
