@@ -62,6 +62,8 @@ Import←{
 }
 
 # TODO parse faux ast
+#      parse Function start
+#      parse lists
 
 # TODO •rebqn‿𝕊
 ReBQN←{ 𝕊 path:
@@ -87,19 +89,28 @@ ReBQN←{ 𝕊 path:
 
   Repl↩{ ·‿f‿· 𝕊 𝕩:
     ctx.Push f
-    r←𝕨 Re⎊{𝕊:•Out •CurrentError@} 𝕩
+    #r←𝕨 Re⎊{𝕊:•Out •CurrentError@} 𝕩
+    r←𝕨 Re 𝕩
     ctx.Pop 1
     r
   }
 }
 
-Run←{𝕊 entry:
+RunEntry←{
+  @:@
+; path←•file.Parent 𝕩
+  repl↩ReBQN path
+  ⟨path, 𝕩, •args⟩ Repl •file.Chars 𝕩
+}
+
+Serve←{𝕊 entry:
   srv_addr ← ⟨af_inet,Htons ⟨port⟩,⟨0⟩,8⥊0⟩
   srv_fd←Socket af_inet‿sock_stream‿0
   Setsockopt srv_fd‿sol_socket‿so_reuseaddr‿⟨1⟩‿4
   Bind ⟨srv_fd,⋈srv_addr,16⟩
   Listen srv_fd‿3
 
+  RunEntry entry
   •Out "listening to port "∾•Fmt port
 
   {𝕊:
@@ -117,11 +128,7 @@ Run←{𝕊 entry:
         path←•file.Parent 𝕩
         repl↩ReBQN path
         ⟨path, entry, •args⟩ Eval l
-    ; 𝕩:                                           # eval buffer on •Import 
-        ch←•file.Chars entry
-        path←•file.Parent entry
-        repl↩ReBQN path
-        ⟨path, entry, •args⟩ Repl ch
+    ; 𝕩:RunEntry entry                             # eval buffer on •Import 
     } 0⊑l
     1
   } •_while_ ⊢ 1
@@ -132,7 +139,7 @@ Run←{𝕊 entry:
     # TODO override effs
     @
 ; 𝕩:𝕩≡"test"?@                                     # TODO delete
-; 𝕩:1=≠𝕩? Run •path •file.At ⊑𝕩                    # Run with 
-; 𝕩: Run@
+; 𝕩:1=≠𝕩? Serve •wdpath •file.At ⊑𝕩                # Run with 
+; 𝕩: Serve@
 } •args
 
