@@ -27,6 +27,8 @@ repl       ← @
 port       ← 8080
 ref        ← ⟨⟩                                    # reference table of id numbers to line info 
 
+
+
 cur        ← @                                     # current buffer to be evaluated that has been sent over from the socket
 
 Debug←{
@@ -47,7 +49,7 @@ Eval⇐{ 𝕨 𝕊 l:
   i←(≠l)↑r⊔∾⟜"⊸▫"∘•Fmt¨(≠ref)+↕≠r                  # format indices
   ref↩ref∾r⊏l
   c←i ∾∘∾¨⌾(r⊸⊏) l
-  𝕨 Repl ∾lf⊸∾¨2↓c
+  𝕨 Repl 1↓∾lf⊸∾¨2↓c
 }
 
 Import←{
@@ -85,7 +87,7 @@ ReBQN←{ 𝕊 path:
 
   Repl↩{ ·‿f‿· 𝕊 𝕩:
     ctx.Push f
-    r←𝕨 Re 𝕩
+    r←𝕨 Re⎊{𝕊:•Out •CurrentError@} 𝕩
     ctx.Pop 1
     r
   }
